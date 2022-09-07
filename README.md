@@ -15,10 +15,10 @@
 
                                         # Backend Task
 
-search for a user by name.
-sort list by field name.
-pagination of users list.
-get detailed user.
+#search for a user by name.
+#sort list by field name.
+#pagination of users list.
+#get detailed user.
 
 
                                         # Steps to start project
