@@ -4,6 +4,7 @@ import hashlib
 import hmac
 from flask_jwt_extended import create_access_token, create_refresh_token
 from ..books import models, schemas
+from ..utils import api, db
 
 
 def get_hmac(password):
@@ -45,7 +46,6 @@ class FlaskSecurity(object):
         try:
             if len(base64.b64decode(password).hex()):
                 password = get_hmac(verify_password)
-                print(password)
                 return password == get_hmac(verify_password)
             else:
                 raise binascii.Error
@@ -54,18 +54,13 @@ class FlaskSecurity(object):
             new_password = get_hmac(password)
             self.data_store.query \
                 .filter(self.data_store.id == id).update({'password': new_password})
-            models.User.db.session.commit()
+            db.session.commit()
             return password == verify_password
 
     def get_token(self, id):
         global user_id
         identity = schemas.UserSchema().dump(self.data_store.query.get(id))
-
-        user_type = identity['is_admin']
-        if user_type:
-            user_id = identity['id']
-        else:
-            identity['id'] = []
+        user_id = identity['id']
 
         return create_access_token(identity=identity, ), create_refresh_token(identity=user_id)
 
