@@ -1,12 +1,12 @@
 from flask import make_response, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restful import Resource
+from sqlalchemy import or_, asc
+
 from .models import User, Books, BooksStatus
 from .schemas import UserSchema, BooksSchema, BooksStatusSchema
 from ..utils import api, db
 from ..utils import security
-from sqlalchemy import and_, desc, or_, asc
-
 
 
 class UserResource(Resource):
@@ -14,33 +14,37 @@ class UserResource(Resource):
     schema = UserSchema
 
     @jwt_required
-    def get(self, slug):
+    def get(self, slug=None):
         current_user = get_jwt_identity()
 
         if current_user['is_admin'] and current_user['active']:
             users = User.query
-            if '__page' in request.args and request.args.get('__page') and '__limit' in request.args and request.args.get('__limit'):
-                page = request.args.get('__page')
-                limit = request.args.get('__limit')
-                users = users.limit(limit).offset(int(limit) * int(page)-1)
-            if '__user_name__equal' in request.args and request.args.get('__user_name__equal'):
-                user_name =request.args.get('__user_name__equal')
-                data = self.schema().dump(users.filter(User.name == user_name).all(), many=True)
-                return make_response(jsonify({'User_by_name': data}))
-            data = self.schema().dump(users.order_by(asc(User.name)).all(), many=True)
+            if slug:
+                if '__page' in request.args and request.args.get(
+                        '__page') and '__limit' in request.args and request.args.get('__limit'):
+                    page = request.args.get('__page')
+                    limit = request.args.get('__limit')
+                    users = users.limit(limit).offset(int(limit) * int(page) - 1)
+                if '__user_name__equal' in request.args and request.args.get('__user_name__equal'):
+                    user_name = request.args.get('__user_name__equal')
+                    data = self.schema().dump(users.filter(User.name == user_name).all(), many=True)
+                    return make_response(jsonify({'User_by_name': data}))
+                data = self.schema().dump(users.order_by(asc(User.name)).all(), many=True)
+            else:
+                data = self.schema().dump(users.all(), many=True)
 
             return make_response(jsonify({'Users': data}))
         if not current_user['is_admin'] and current_user['active']:
             user = self.model.query.filter(User.id == slug).first()
             data = self.schema().dump(user)
-            return make_response(jsonify({'Users': data}),200)
+            return make_response(jsonify({'Users': data}), 200)
 
     def post(self):
         data = request.json
         obj = UserSchema().load(data, session=db.session, many=False)
         db.session.add(obj)
         db.session.commit()
-        return 'User Added Successfully',201
+        return 'User Added Successfully', 201
 
     @jwt_required
     def patch(self, slug):
@@ -50,9 +54,9 @@ class UserResource(Resource):
             data = request.json
             UserSchema().load(data, session=db.session, instance=obj)
             db.session.commit()
-            return 'User Updated Successfully',200
+            return 'User Updated Successfully', 200
         else:
-            return 'You have Permission to do admin work', 200
+            return 'You have Permission to do admin work', 403
 
     @jwt_required
     def delete(self, slug):
@@ -61,14 +65,13 @@ class UserResource(Resource):
         if current_user['is_admin']:
             obj = User.query.filter(User.id == slug).first()
         if not current_user['is_admin']:
-            obj = User.query.filter(or_(User.id == current_user['id'] ), (User.id == slug), (current_user['id'] == slug)).first()
-            if not obj:
-                return 'You have Permission to do admin work', 200
+            obj = User.query.filter(or_(User.id == current_user['id']), (User.id == slug),
+                                    (current_user['id'] == slug)).first()
         if not obj:
             return make_response(jsonify({'error': 'Resource not found'}), 404)
         db.session.delete(obj)
         db.session.commit()
-        return 'User Deleted Successfully',204
+        return 'User Deleted Successfully', 204
 
 
 api.add_resource(UserResource, '/user/<slug>', endpoint='user')
@@ -103,23 +106,23 @@ class BooksResource(Resource):
             obj = BooksSchema().load(data, session=db.session, many=False)
             db.session.add(obj)
             db.session.commit()
-            return 'User Added Successfully',201
+            return 'User Added Successfully', 201
         else:
-            return 'You have Permission to do admin work', 200
+            return 'You have Permission to do admin work', 403
 
+    @jwt_required
     def patch(self, slug):
         current_user = get_jwt_identity()
         if current_user['is_admin']:
             obj = Books.query.get(slug)
             data = request.json
             BooksSchema().load(data, session=db.session, instance=obj)
-
             db.session.commit()
-            return 'User Updated Successfully',200
+            return 'User Updated Successfully', 200
         else:
-            return 'You have Permission to do admin work', 200
+            return 'Permission Denied', 403
 
-
+    @jwt_required
     def delete(self, slug):
         current_user = get_jwt_identity()
         if current_user['is_admin']:
@@ -128,9 +131,9 @@ class BooksResource(Resource):
                 return make_response(jsonify({'error': 'Resource not found'}), 404)
             db.session.delete(obj)
             db.session.commit()
-            return make_response(jsonify('success'), 204)
+            return 'Book Deleted Successfully', 204
         else:
-            return 'You have Permission to do admin work', 200
+            return 'Permission Denied', 403
 
 
 api.add_resource(BooksResource, '/books/<slug>', endpoint='books')
@@ -161,7 +164,7 @@ class BooksStatusResource(Resource):
             obj = BooksStatusSchema().load(data, session=db.session, many=False)
             db.session.add(obj)
             db.session.commit()
-            return 'Book Status Added Successfully',201
+            return 'Book Status Added Successfully', 201
 
     @jwt_required
     def patch(self, slug):
@@ -177,7 +180,7 @@ class BooksStatusResource(Resource):
             db.session.commit()
             db.session.delete(obj)
             db.session.commit()
-            return 'User Updated Successfully',200
+            return 'Book Status Updated Successfully', 200
 
 
 api.add_resource(BooksStatusResource, '/book_status/<slug>', endpoint='book_status')

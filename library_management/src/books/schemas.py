@@ -9,7 +9,7 @@ class UserSchema(SQLAlchemyAutoSchema):
         model = User
         include_relationships = True
         load_instance = True
-        # exclude = ('book_status',)
+        exclude = ('book_status',)
 
     id = ma.UUID(load=True)
     name = ma.String(load=True, allow_none=False)

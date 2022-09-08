@@ -11,6 +11,7 @@ class BaseConfig:
     MARSHMALLOW_DATEFORMAT = 'rfc'
 
     SECRET_KEY = 'SECRETKEY@123'
+    JWT_ACCESS_TOKEN_EXPIRES = 172800
 
     @staticmethod
     def init_app(app):

@@ -2,9 +2,11 @@ import base64
 import binascii
 import hashlib
 import hmac
+
 from flask_jwt_extended import create_access_token, create_refresh_token
+
 from ..books import models, schemas
-from ..utils import api, db
+from ..utils import db
 
 
 def get_hmac(password):
