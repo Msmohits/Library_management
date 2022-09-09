@@ -1,7 +1,7 @@
 from flask import make_response, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_restful import Resource
-from sqlalchemy import or_, asc
+from sqlalchemy import or_, asc, desc
 
 from .models import User, Books, BooksStatus
 from .schemas import UserSchema, BooksSchema, BooksStatusSchema
@@ -24,14 +24,14 @@ class UserResource(Resource):
                         '__page') and '__limit' in request.args and request.args.get('__limit'):
                     page = request.args.get('__page')
                     limit = request.args.get('__limit')
-                    users = users.limit(limit).offset(int(limit) * int(page) - 1)
+                    users = users.limit(limit).offset((int(page) - 1) * int(limit))
                 if '__user_name__equal' in request.args and request.args.get('__user_name__equal'):
                     user_name = request.args.get('__user_name__equal')
                     data = self.schema().dump(users.filter(User.name == user_name).all(), many=True)
                     return make_response(jsonify({'User_by_name': data}))
-                data = self.schema().dump(users.order_by(asc(User.name)).all(), many=True)
-            else:
                 data = self.schema().dump(users.all(), many=True)
+            else:
+                data = self.schema().dump(users.order_by(asc(User.name)).all(), many=True)
 
             return make_response(jsonify({'Users': data}))
         if not current_user['is_admin'] and current_user['active']:
@@ -89,12 +89,12 @@ class BooksResource(Resource):
                 '__limit'):
             page = request.args.get('__page')
             limit = request.args.get('__limit')
-            books = books.limit(limit).offset(int(limit) * int(page) - 1)
+            books = books.limit(limit).offset((int(page) - 1) * int(limit))
         if '__book_name__equal' in request.args and request.args.get('__book_name__equal'):
             book_name = request.args.get('__book_name__equal')
             data = self.schema().dump(Books.filter(Books.name == book_name).all(), many=True)
             return make_response(jsonify({"book_by_name": data}))
-        data = BooksSchema().dump(books.order_by(asc(Books.author)).all(), many=True)
+        data = BooksSchema().dump(books.all(), many=True)
 
         return make_response(jsonify({"books": data}))
 
@@ -151,7 +151,7 @@ class BooksStatusResource(Resource):
                 '__limit'):
             page = request.args.get('__page')
             limit = request.args.get('__limit')
-            books_status = books_status.limit(limit).offset(int(limit) * int(page) - 1)
+            books_status = books_status.limit(limit).offset((int(page) - 1) * int(limit))
         if not books_status:
             return make_response(jsonify({'error': 'Resource not found'}), 404)
         data = self.schema().dump(books_status.all(), many=True)
